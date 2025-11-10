@@ -20,7 +20,7 @@ if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR);
 
 // /start reply
 bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, "Hi! ሰላም የኬብሮን አባላት እስኪ ፎቶ አስገቡ ");
+  bot.sendMessage(msg.chat.id, "🖐 ሰላም ቅዱሳን ለመቀጠል ፎቶ አስገቡ ");
 });
 
 // handle received photos
