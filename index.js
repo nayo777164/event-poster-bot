@@ -32,7 +32,7 @@ bot.on("photo", async (msg) => {
     // 💬 Step 1: Immediately reply
     const processingMessage = await bot.sendMessage(
       chatId,
-      "⏳ እስኪ ትንሽ ተረጋጋና ጠብቀኝ 🤪"
+      "⏳ ፎቶውን በመስራት ላይ ነው... ትንሽ ይጠብቁ።"
     );
 
     // Step 2: Download and process
@@ -64,19 +64,20 @@ bot.on("photo", async (msg) => {
     await sharp(finalImageBuffer).grayscale().toFile(outputBW);
 
     // Step 3: Edit "processing" message to success
-    await bot.editMessageText("✅ ይሄው ከች አለ 😉።", {
+    await bot.editMessageText("✅ ተከናውኗል!", {
       chat_id: chatId,
       message_id: processingMessage.message_id,
     });
 
     // Step 4: Send both versions
-    await bot.sendDocument(chatId, outputColor, { caption: "🎨 ቀለም ያለው ፎቶ" });
-    await bot.sendDocument(chatId, outputBW, { caption: "🖤 ጥቁር ነጭ ፎቶ" });
+    await bot.sendDocument(chatId, outputColor, { caption: "🎨 ባለ ቀለም" });
+    await bot.sendDocument(chatId, outputBW, { caption: "🖤 ጥቁር ነጭ " });
 
   } catch (err) {
     console.error("Error processing image:", err);
-    bot.sendMessage(chatId, "😔 ኤጭ ምንድን አሁን ይሄ ከብዶ ነው፣ እንደገና ሞክር ባክህ");
+    bot.sendMessage(chatId, "😔 ይቅርታ፣ ፎቶውን ማስተካከል አልተሳካም። እንደገና ይሞክሩ።");
   }
 })
 ;
+
 
