@@ -20,8 +20,14 @@ if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR);
 
 // /start reply
 bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, "🖐 ሰላም ቅዱሳን ለመቀጠል ፎቶ አስገቡ ");
+  const name = msg.from.first_name || "";
+  
+  bot.sendMessage(
+    msg.chat.id,
+    `ሰላም ${name}! 😊\nእባኮ ፎቶ ያስገቡ`
+  );
 });
+
 
 // handle received photos
 bot.on("photo", async (msg) => {
@@ -29,55 +35,54 @@ bot.on("photo", async (msg) => {
   const fileId = msg.photo[msg.photo.length - 1].file_id;
 
   try {
-    // 💬 Step 1: Immediately reply
-    const processingMessage = await bot.sendMessage(
-      chatId,
-      "⏳ ፎቶውን በመስራት ላይ ነው... ትንሽ ይጠብቁ።"
-    );
+    // Show typing animation
+    bot.sendChatAction(chatId, "typing");
 
-    // Step 2: Download and process
+    // Loading message
+    await bot.sendMessage(chatId, "Processing your image... please wait 😊");
+
+    // Get file info
     const file = await bot.getFile(fileId);
     const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
 
-    const timestamp = Date.now();
-    const inputPath = path.join(OUTPUT_DIR, `${msg.from.id}_${timestamp}_input.jpg`);
-    const outputColor = path.join(OUTPUT_DIR, `${msg.from.id}_${timestamp}_poster_color.png`);
-    const outputBW = path.join(OUTPUT_DIR, `${msg.from.id}_${timestamp}_poster_bw.png`);
+    // Paths
+    const inputPath = path.join(OUTPUT_DIR, `${msg.from.id}_input.jpg`);
+    const outputColor = path.join(OUTPUT_DIR, `${msg.from.id}_poster_color.png`);
+    const outputBW = path.join(OUTPUT_DIR, `${msg.from.id}_poster_bw.png`);
 
+    // Download user image
     const res = await fetch(fileUrl);
     const arrayBuf = await res.arrayBuffer();
     fs.writeFileSync(inputPath, Buffer.from(arrayBuf));
 
+    // Read poster template size
     const posterMeta = await sharp(POSTER_TEMPLATE).metadata();
     const { width, height } = posterMeta;
 
+    // Resize user image
     const userImage = await sharp(inputPath)
       .resize({ width, height, fit: "cover" })
       .toBuffer();
 
-    const finalImageBuffer = await sharp(userImage)
+    // Composite
+    const finalImage = await sharp(userImage)
       .composite([{ input: POSTER_TEMPLATE, blend: "over" }])
       .png()
       .toBuffer();
 
-    fs.writeFileSync(outputColor, finalImageBuffer);
-    await sharp(finalImageBuffer).grayscale().toFile(outputBW);
+    // Save versions
+    await sharp(finalImage).toFile(outputColor);
+    await sharp(finalImage).grayscale().toFile(outputBW);
 
-    // Step 3: Edit "processing" message to success
-    await bot.editMessageText("✅ ተከናውኗል!", {
-      chat_id: chatId,
-      message_id: processingMessage.message_id,
-    });
-
-    // Step 4: Send both versions
-    await bot.sendDocument(chatId, outputColor, { caption: "🎨 ባለ ቀለም" });
-    await bot.sendDocument(chatId, outputBW, { caption: "🖤 ጥቁር ነጭ " });
+    // Send results
+    await bot.sendDocument(chatId, outputColor, { caption: "✅ Color version" });
+    await bot.sendDocument(chatId, outputBW, { caption: "✅ Black & White version" });
 
   } catch (err) {
-    console.error("Error processing image:", err);
-    bot.sendMessage(chatId, "😔 ይቅርታ፣ ፎቶውን ማስተካከል አልተሳካም። እንደገና ይሞክሩ።");
+    console.error("Error generating poster:", err);
+    bot.sendMessage(chatId, "⚠️ Sorry, something went wrong.");
   }
-})
-;
+});
+
 
 
