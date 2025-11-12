@@ -82,8 +82,8 @@ bot.on("photo", async (msg) => {
       .toFile(outputBW);
 
     // Send both versions to the user as photos (chat preview)
-    await bot.sendPhoto(chatId, outputColor, { caption: "🎨 Color version (JPEG)" });
-    await bot.sendPhoto(chatId, outputBW, { caption: "🖤 Black & White version (JPEG)" });
+    await bot.sendPhoto(chatId, outputColor, { caption: "🎨 Color version " });
+    await bot.sendPhoto(chatId, outputBW, { caption: "🖤 Black & White version " });
 
     // Delete processing message
     await bot.deleteMessage(chatId, processingMsg.message_id);
