@@ -69,27 +69,21 @@ bot.on("photo", async (msg) => {
       .toBuffer();
 
     // Save both versions
-    await sharp(finalImage).toFile(outputColor);
-    await sharp(finalImage).grayscale().toFile(outputBW);
+   // Step 4: Save color and black & white versions (JPEG to reduce size)
+    await sharp(finalImage)
+      .jpeg({ quality: 85 }) // you can adjust quality (70–90)
+      .toFile(outputColor.replace(".png", ".jpg"));
 
-    // Send typing animation before upload
-    await bot.sendChatAction(chatId, "upload_photo");
+    await sharp(finalImage)
+      .grayscale()
+      .jpeg({ quality: 85 })
+      .toFile(outputBW.replace(".png", ".jpg"));
 
-    // Send both results together
-    await bot.sendMessage(chatId, "🎉 ፎቶዎ ዝግጁ ሆኗል! እባክዎ ይመልከቱ 👇");
+    // Step 5: Send both versions to the user
+    await bot.sendPhoto(chatId, outputColor, { caption: "🎨 Color version (JPEG)" });
+    await bot.sendPhoto(chatId, outputBW, { caption: "🖤 Black & White version (JPEG)" });
 
-    await bot.sendMediaGroup(chatId, [
-      {
-        type: "photo",
-        media: { source: outputColor },
-        caption: "🎨 color",
-      },
-      {
-        type: "photo",
-        media: { source: outputBW },
-        caption: "🖤 black and white",
-      },
-    ]);
+
 
   } catch (err) {
     console.error("Error generating poster:", err);
