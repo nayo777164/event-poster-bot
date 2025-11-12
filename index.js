@@ -4,7 +4,7 @@ import sharp from "sharp";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
-import fetch from "node-fetch"; // ✅ required for Node.js <18
+import fetch from "node-fetch"; // for Node.js <18
 dotenv.config();
 
 // Create bot instance (polling mode)
@@ -12,16 +12,15 @@ const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 console.log("Bot token loaded:", process.env.BOT_TOKEN ? "✅ Found" : "❌ Missing");
 
 // File paths
-const POSTER_TEMPLATE = path.resolve("./poster_template.png"); // make sure this exists
+const POSTER_TEMPLATE = path.resolve("./poster_template.png"); 
 const OUTPUT_DIR = path.resolve("./output");
 
 // Ensure output folder exists
 if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR);
 
-// /start command — greet user by name
+// /start command
 bot.onText(/\/start/, (msg) => {
-  const name = msg.from.first_name || "ጓደኛ"; // fallback if name missing
-
+  const name = msg.from.first_name || "ጓደኛ";
   bot.sendMessage(
     msg.chat.id,
     `ሰላም ${name}! 😊\n poster እንዲሰራ ፎቶ ያስገቡ እና ዝግጁ ይሁን።`
@@ -34,10 +33,10 @@ bot.on("photo", async (msg) => {
   const fileId = msg.photo[msg.photo.length - 1].file_id;
 
   try {
-    // Show typing animation
+    // Typing animation
     await bot.sendChatAction(chatId, "typing");
 
-    // Loading message
+    // Processing message
     const processingMsg = await bot.sendMessage(
       chatId,
       "🔄 ፎቶዎ በሂደት ላይ ነው... እባክዎ ይጠብቁ 😊"
@@ -47,10 +46,9 @@ bot.on("photo", async (msg) => {
     const file = await bot.getFile(fileId);
     const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
 
-    // Paths for input and output
+    // Paths
     const inputPath = path.join(OUTPUT_DIR, `${msg.from.id}_input.jpg`);
     const outputColor = path.join(OUTPUT_DIR, `${msg.from.id}_poster_color.jpg`);
-    const outputBW = path.join(OUTPUT_DIR, `${msg.from.id}_poster_bw.jpg`);
 
     // Download user image
     const res = await fetch(fileUrl);
@@ -71,19 +69,13 @@ bot.on("photo", async (msg) => {
       .composite([{ input: POSTER_TEMPLATE, blend: "over" }])
       .toBuffer();
 
-    // Save color and black & white versions as JPEG
+    // Save only color version as JPEG
     await sharp(finalImage)
       .jpeg({ quality: 85 })
       .toFile(outputColor);
 
-    await sharp(finalImage)
-      .grayscale()
-      .jpeg({ quality: 85 })
-      .toFile(outputBW);
-
-    // Send both versions to the user as photos (chat preview)
-    await bot.sendPhoto(chatId, outputColor, { caption: "🎨 Color version " });
-    await bot.sendPhoto(chatId, outputBW, { caption: "🖤 Black & White version " });
+    // Send color version to the user
+    await bot.sendPhoto(chatId, outputColor, { caption: "🎨 This is your poster image" });
 
     // Delete processing message
     await bot.deleteMessage(chatId, processingMsg.message_id);
