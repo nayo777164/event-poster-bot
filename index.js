@@ -4,6 +4,7 @@ import sharp from "sharp";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import fetch from "node-fetch"; // ✅ required for Node.js <18
 dotenv.config();
 
 // Create bot instance (polling mode)
@@ -37,16 +38,19 @@ bot.on("photo", async (msg) => {
     await bot.sendChatAction(chatId, "typing");
 
     // Loading message
-    await bot.sendMessage(chatId, "🔄 ፎቶዎ በሂደት ላይ ነው... እባክዎ ይጠብቁ 😊");
+    const processingMsg = await bot.sendMessage(
+      chatId,
+      "🔄 ፎቶዎ በሂደት ላይ ነው... እባክዎ ይጠብቁ 😊"
+    );
 
     // Get file info
     const file = await bot.getFile(fileId);
     const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
 
-    // Paths
+    // Paths for input and output
     const inputPath = path.join(OUTPUT_DIR, `${msg.from.id}_input.jpg`);
-    const outputColor = path.join(OUTPUT_DIR, `${msg.from.id}_poster_color.png`);
-    const outputBW = path.join(OUTPUT_DIR, `${msg.from.id}_poster_bw.png`);
+    const outputColor = path.join(OUTPUT_DIR, `${msg.from.id}_poster_color.jpg`);
+    const outputBW = path.join(OUTPUT_DIR, `${msg.from.id}_poster_bw.jpg`);
 
     // Download user image
     const res = await fetch(fileUrl);
@@ -65,28 +69,30 @@ bot.on("photo", async (msg) => {
     // Composite poster overlay
     const finalImage = await sharp(userImage)
       .composite([{ input: POSTER_TEMPLATE, blend: "over" }])
-      .png()
       .toBuffer();
 
-    // Save both versions
-   // Step 4: Save color and black & white versions (JPEG to reduce size)
+    // Save color and black & white versions as JPEG
     await sharp(finalImage)
-      .jpeg({ quality: 85 }) // you can adjust quality (70–90)
-      .toFile(outputColor.replace(".png", ".jpg"));
+      .jpeg({ quality: 85 })
+      .toFile(outputColor);
 
     await sharp(finalImage)
       .grayscale()
       .jpeg({ quality: 85 })
-      .toFile(outputBW.replace(".png", ".jpg"));
+      .toFile(outputBW);
 
-    // Step 5: Send both versions to the user
+    // Send both versions to the user as photos (chat preview)
     await bot.sendPhoto(chatId, outputColor, { caption: "🎨 Color version (JPEG)" });
     await bot.sendPhoto(chatId, outputBW, { caption: "🖤 Black & White version (JPEG)" });
 
-
+    // Delete processing message
+    await bot.deleteMessage(chatId, processingMsg.message_id);
 
   } catch (err) {
     console.error("Error generating poster:", err);
-    bot.sendMessage(chatId, "⚠️ ይቅርታ፣ ችግኝ ተፈጥሯል። እባክዎ እንደገና ይሞክሩ።");
+    bot.sendMessage(
+      chatId,
+      "⚠️ ይቅርታ፣ ችግኝ ተፈጥሯል። እባክዎ እንደገና ይሞክሩ።"
+    );
   }
 });
