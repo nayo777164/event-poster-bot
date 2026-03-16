@@ -6,6 +6,18 @@ import path from "path";
 import dotenv from "dotenv";
 import fetch from "node-fetch"; // for Node.js <18
 dotenv.config();
+const express = require("express");
+const app = express();
+
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+  res.send("Bot is running");
+});
+
+app.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
+});
 
 // Create bot instance (polling mode)
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
